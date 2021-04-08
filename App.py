@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import *
-from Controller import BController
+from Controller import Controller
 from UiWindow import MyWindow
 import time
 import queue
@@ -19,7 +19,7 @@ class App(MyWindow):
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
         self.setupUi()
-        self.controller = BController()
+        self.controller = Controller()
         self.establishConnections()
 
 

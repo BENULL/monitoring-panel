@@ -28,6 +28,7 @@ class VideoCapture:
 
 
 if __name__ == '__main__':
+
     import cv2
     cap = cv2.VideoCapture("rtp://127.0.0.1:1234")
     ret, frame = cap.read()

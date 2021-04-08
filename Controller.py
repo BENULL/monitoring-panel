@@ -14,7 +14,7 @@ import threading
 import time
 
 
-class BController:
+class Controller:
 
     __RECOGNIZE_ACTION_URL = 'http://10.176.54.14:55000/recognizeAction'
     __ACTION_LABEL = ['站', '坐', '走', '吃', '红绳操', '毛巾操', '未知动作']
@@ -71,10 +71,10 @@ class BController:
 
     def __gainFramePerVideo(self, waitingQueueDict):
         imagesData = []
-        needRecognize = self.frameCnt % BController.__RECOGNIZE_PER_FRAME == 0
+        needRecognize = self.frameCnt % Controller.__RECOGNIZE_PER_FRAME == 0
         for camera in list(waitingQueueDict.keys()):
             try:
-                element = waitingQueueDict[camera].get(timeout=BController.__QUEUE_GET_TIMEOUT)
+                element = waitingQueueDict[camera].get(timeout=Controller.__QUEUE_GET_TIMEOUT)
                 if element == 'DONE':
                     del waitingQueueDict[camera]
                 else:
@@ -87,7 +87,7 @@ class BController:
 
     def __procResponseData(self, origin, response=dict()):
         camera, frameNum, image = origin
-        label = BController.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
+        label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
         return dict(camera=str(self.__cameras.index(camera)), frameNum=frameNum, image=image, label=label)
 
     def __buildRecognizeParam(self, images, pose: bool = False, box: bool = False):
@@ -105,7 +105,7 @@ class BController:
         p.start()
 
     def recognizeAction(self, param: dict):
-        response = requests.post(BController.__RECOGNIZE_ACTION_URL, data=json.dumps(param))
+        response = requests.post(Controller.__RECOGNIZE_ACTION_URL, data=json.dumps(param))
         if response.status_code == 200:
             res = response.json()
             if res.get('status') == 0:
@@ -118,14 +118,14 @@ class BController:
     def recv(self):
         res = []
         try:
-            res = self.responseQueue.get(timeout=BController.__QUEUE_GET_TIMEOUT)
+            res = self.responseQueue.get(timeout=Controller.__QUEUE_GET_TIMEOUT)
         except queue.Empty:
             pass
         finally:
             return dict(data=res)
 
 if __name__ == '__main__':
-    controller = BController()
+    controller = Controller()
 
     controller.startProcRecognize()
     controller.procVideo('/Users/benull/Downloads/1.MOV')

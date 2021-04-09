@@ -33,15 +33,21 @@ class Controller:
         # self.duration = 0
 
     def start(self):
-        self.startProcRecognize()
         for i in range(1):
             self.procVideo(f'/Users/benull/Downloads/{i}.MOV')
+        # 线程
+        self.startProcRecognize()
 
 
     def startProcRecognize(self):
-        t = threading.Thread(target=self.procRecognizeQueue, name='procRecognizeThread',
-                             args=(self.waitingQueueDict, self.responseQueue,))
-        t.start()
+
+        p = multiprocessing.Process(target=self.procRecognizeQueue,
+                                    args=(self.waitingQueueDict, self.responseQueue,))
+        p.start()
+
+        # t = threading.Thread(target=self.procRecognizeQueue, name='procRecognizeThread',
+        #                      args=(self.waitingQueueDict, self.responseQueue,))
+        # t.start()
 
     def __requestRecognizeAction(self, imagesData):
         param = self.__buildRecognizeParam(imagesData, False, False)
@@ -53,6 +59,8 @@ class Controller:
             # self.duration += (time.time() - start)
             # self.times += 1
             # print(f'{self.times}次请求平均消耗时间{self.duration/self.times*1000}ms')
+
+
             return list(map(self.__procResponseData, imagesData, responseData))
         except Exception as e:
             # traceback.print_exc()
@@ -65,11 +73,13 @@ class Controller:
                 continue
             if needRecognize:
                 # pass
+
                 responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
                 responseQueue.put(list(map(self.__procResponseData, imagesData)))
 
     def __gainFramePerVideo(self, waitingQueueDict):
+
         imagesData = []
         needRecognize = self.frameCnt % Controller.__RECOGNIZE_PER_FRAME == 0
         for camera in list(waitingQueueDict.keys()):
@@ -105,7 +115,13 @@ class Controller:
         p.start()
 
     def recognizeAction(self, param: dict):
+        import os
+        print(f'{os.getpid()} recog ')
+        import time
+        print(f'{time.time()}  start')
+
         response = requests.post(Controller.__RECOGNIZE_ACTION_URL, data=json.dumps(param))
+        print(f'{time.time()}  end')
         if response.status_code == 200:
             res = response.json()
             if res.get('status') == 0:

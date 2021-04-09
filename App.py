@@ -31,6 +31,8 @@ class App(MyWindow):
             self.__refreshScreen(imageInfo)
 
     def __refreshScreen(self, info: dict):
+        import os
+        print(f'{os.getpid()} refresh ')
         screen = self.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])

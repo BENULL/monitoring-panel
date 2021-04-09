@@ -34,7 +34,7 @@ class Controller:
 
     def start(self):
         self.startProcRecognize()
-        for i in range(10):
+        for i in range(1):
             self.procVideo(f'/Users/benull/Downloads/{i}.MOV')
 
 
@@ -64,8 +64,8 @@ class Controller:
             if not imagesData:
                 continue
             if needRecognize:
-                pass
-                # responseQueue.put(self.__requestRecognizeAction(imagesData))
+                # pass
+                responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
                 responseQueue.put(list(map(self.__procResponseData, imagesData)))
 

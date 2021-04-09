@@ -115,13 +115,14 @@ class Controller:
         p.start()
 
     def recognizeAction(self, param: dict):
-        import os
-        print(f'{os.getpid()} recog ')
+        # import os
+        # print(f'{os.getpid()} recog ')
+
         import time
-        print(f'{time.time()}  start')
+        print(f'{time.time()}  startRe')
 
         response = requests.post(Controller.__RECOGNIZE_ACTION_URL, data=json.dumps(param))
-        print(f'{time.time()}  end')
+        print(f'{time.time()}  endRe')
         if response.status_code == 200:
             res = response.json()
             if res.get('status') == 0:

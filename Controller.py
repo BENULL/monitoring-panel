@@ -8,7 +8,6 @@ import multiprocessing
 from multiprocessing import Queue
 import queue
 import cv2
-import threading
 import time
 import grequests
 
@@ -36,7 +35,6 @@ class Controller:
         # self.duration = 0
 
     def start(self):
-
         for i in range(1):
             self.procVideo(f'/Users/benull/Downloads/{i}.MOV')
 
@@ -47,6 +45,17 @@ class Controller:
 
         p = multiprocessing.Process(target=self.procRecognizeQueue,args=(self.waitingQueueDict, self.responseQueue,))
         p.start()
+
+    def procRecognizeQueue(self, waitingQueueDict, responseQueue):
+        while True:
+            imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
+            if not imagesData:
+                continue
+
+            if needRecognize:
+                responseQueue.put(self.__requestRecognizeAction(imagesData))
+            else:
+                responseQueue.put(list(map(self.__procResponseData, imagesData)))
 
     def __requestRecognizeAction(self, imagesData):
 
@@ -70,17 +79,6 @@ class Controller:
     def __buildImageListPerCamera(self, imagesData):
         serverNum = len(Controller.__RECOGNIZE_ACTION_URLS)
         return [list(filter(None,imagesData[i::serverNum])) for i in range(serverNum)]
-
-
-    def procRecognizeQueue(self, waitingQueueDict, responseQueue):
-        while True:
-            imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
-            if not imagesData:
-                continue
-            if needRecognize:
-                responseQueue.put(self.__requestRecognizeAction(imagesData))
-            else:
-                responseQueue.put(list(map(self.__procResponseData, imagesData)))
 
     def __gainFramePerVideo(self, waitingQueueDict):
         imagesData = []
@@ -125,19 +123,20 @@ class Controller:
     def recognizeAction(self, params):
         # import os
         # print(f'{os.getpid()} recog ')
-        import time
-        print(f'{time.time()}  startRe')
+        # import time
+        # print(f'{time.time()}  startRe')
 
         requestList = self.__buildRequestList(params)
 
-        responseList = pgrequests.map(requestList)
+        responseList = grequests.map(requestList)
 
-        print(f'{time.time()}  endRe')
+        # print(f'{time.time()}  endRe')
 
         return self.__processMultiResponse(responseList)
 
     def __processMultiResponse(self,responseList):
         mergedData = []
+
         for response in responseList:
             if response.status_code == 200:
                 res = response.json()
@@ -165,8 +164,8 @@ if __name__ == '__main__':
     controller = Controller()
 
     controller.procVideo('/Users/benull/Downloads/1.MOV')
-    controller.startProcRecognize()
 
+    controller.startProcRecognize()
 
     import time
 

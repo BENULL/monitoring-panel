@@ -10,20 +10,22 @@ import queue
 import cv2
 import time
 import grequests
+import threading
+import itertools
+import traceback
 
 
 class Controller:
-
     # __RECOGNIZE_ACTION_URL = 'http://10.176.54.14:55000/recognizeAction'
 
-    __RECOGNIZE_ACTION_URLS =['http://10.176.54.14:55000/recognizeAction',
-                              'http://10.176.54.22:21602/recognizeAction']
+    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction',
+                               'http://10.176.54.22:21602/recognizeAction']
 
     __ACTION_LABEL = ['站', '坐', '走', '吃', '红绳操', '毛巾操', '未知动作']
 
-    __QUEUE_GET_TIMEOUT = 2
-    __RECOGNIZE_PER_FRAME = 5
+    __QUEUE_GET_TIMEOUT = 0.1
 
+    __RECOGNIZE_PER_FRAME = 5
 
     def __init__(self):
         self.waitingQueueDict = dict()
@@ -31,20 +33,19 @@ class Controller:
         self.cameras = []
         self.frameCnt = 0
 
-        # self.times = 0
-        # self.duration = 0
+        self.times = 0
+        self.duration = 0
 
     def start(self):
-        for i in range(1):
+
+        for i in range(10):
             self.procVideo(f'/Users/benull/Downloads/{i}.MOV')
 
         self.startProcRecognize()
 
-
     def startProcRecognize(self):
-
-        p = multiprocessing.Process(target=self.procRecognizeQueue,args=(self.waitingQueueDict, self.responseQueue,))
-        p.start()
+        t = threading.Thread(target=self.procRecognizeQueue, args=(self.waitingQueueDict, self.responseQueue,))
+        t.start()
 
     def procRecognizeQueue(self, waitingQueueDict, responseQueue):
         while True:
@@ -53,32 +54,34 @@ class Controller:
                 continue
 
             if needRecognize:
+                # pass
                 responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
-                responseQueue.put(list(map(self.__procResponseData, imagesData)))
+                responseQueue.put(list(map(self.__procResponseData, filter(None, imagesData))))
 
     def __requestRecognizeAction(self, imagesData):
 
         imageListPerCamera = self.__buildImageListPerCamera(imagesData)
 
-        params = [self.__buildRecognizeParam(imageList, False, False)  for imageList in imageListPerCamera]
+        params = [self.__buildRecognizeParam(imageList, False, False) for imageList in imageListPerCamera]
         try:
-            # start = time.time()
+            start = time.time()
 
             responseData = self.recognizeAction(params)
 
-            # self.duration += (time.time() - start)
-            # self.times += 1
-            # print(f'{self.times}次请求平均消耗时间{self.duration/self.times*1000}ms')
+            self.duration += (time.time() - start)
+            self.times += 1
+            print(f'{self.times}次请求平均消耗时间{self.duration / self.times * 1000}ms')
 
-            return list(map(self.__procResponseData, imagesData, responseData))
+            return list(map(self.__procResponseData, itertools.chain.from_iterable(imageListPerCamera), responseData))
 
         except Exception as e:
+            # traceback.print_exc()
             return []
 
     def __buildImageListPerCamera(self, imagesData):
         serverNum = len(Controller.__RECOGNIZE_ACTION_URLS)
-        return [list(filter(None,imagesData[i::serverNum])) for i in range(serverNum)]
+        return [list(filter(None, imagesData[i::serverNum])) for i in range(serverNum)]
 
     def __gainFramePerVideo(self, waitingQueueDict):
         imagesData = []
@@ -95,10 +98,10 @@ class Controller:
                 else:
                     imagesData.append(element)
             except queue.Empty:
-                pass
+                imagesData.append(None)
+
         self.frameCnt += 1
         return imagesData, needRecognize
-
 
     def __procResponseData(self, origin, response=dict()):
         camera, frameNum, image = origin
@@ -116,7 +119,7 @@ class Controller:
     def procVideo(self, camera):
         videoCapture = VideoCapture(camera)
         self.cameras.append(camera)
-        self.waitingQueueDict[camera] = Queue(maxsize=15)
+        self.waitingQueueDict[camera] = Queue(maxsize=100)
         p = multiprocessing.Process(target=videoCapture.captureFrame, args=(self.waitingQueueDict[camera],))
         p.start()
 
@@ -128,13 +131,17 @@ class Controller:
 
         requestList = self.__buildRequestList(params)
 
+        # responseList = []
+        # for r in grequests.imap(requestList, size=100):
+        #     responseList.append(r)
+
         responseList = grequests.map(requestList)
 
         # print(f'{time.time()}  endRe')
 
         return self.__processMultiResponse(responseList)
 
-    def __processMultiResponse(self,responseList):
+    def __processMultiResponse(self, responseList):
         mergedData = []
 
         for response in responseList:
@@ -148,22 +155,27 @@ class Controller:
                 raise response.raise_for_status()
         return mergedData
 
-    def __buildRequestList(self,params):
-        return [grequests.post(url,data = json.dumps(param)) for url,param in zip(Controller.__RECOGNIZE_ACTION_URLS,params) if param]
+    def __buildRequestList(self, params):
+        return [grequests.post(url, data=json.dumps(param)) for url, param in
+                zip(Controller.__RECOGNIZE_ACTION_URLS, params) if param]
 
     def recv(self):
         res = []
         try:
-            res = self.responseQueue.get(timeout=Controller.__QUEUE_GET_TIMEOUT)
+            res = self.responseQueue.get(timeout=Controller.__QUEUE_GET_TIMEOUT)  # block=False
         except queue.Empty:
             pass
         finally:
             return dict(data=res)
 
+
 if __name__ == '__main__':
     controller = Controller()
 
     controller.procVideo('/Users/benull/Downloads/1.MOV')
+    controller.procVideo('/Users/benull/Downloads/2.MOV')
+    controller.procVideo('/Users/benull/Downloads/3.MOV')
+    controller.procVideo('/Users/benull/Downloads/4.MOV')
 
     controller.startProcRecognize()
 

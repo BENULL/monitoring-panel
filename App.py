@@ -10,18 +10,18 @@ import time
 import queue
 from PIL import Image
 
-class App(MyWindow):
 
-    __CACHE_QUEUE_LENGTH = 30
+class App(MyWindow):
+    __CACHE_QUEUE_LENGTH = 50
+
     __CACHE_INTERVAL = 20
-    __REFRESH_INTERVAL = 30
+    __REFRESH_INTERVAL = 40
 
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
         self.setupUi()
         self.controller = Controller()
         self.establishConnections()
-
 
     def establishConnections(self):
         self.buttonLabel.connect_customized_slot(self.start)
@@ -33,9 +33,9 @@ class App(MyWindow):
     def __refreshScreen(self, info: dict):
         # import os
         # print(f'{os.getpid()} refresh ')
+        # import time
+        # print(f'{time.time()}  refresh')
 
-        import time
-        print(f'{time.time()}  refresh')
         screen = self.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])
@@ -45,7 +45,6 @@ class App(MyWindow):
         self.refreshTimer = QTimer()
         self.refreshTimer.timeout.connect(self.process)
         self.refreshTimer.start(App.__REFRESH_INTERVAL)
-
 
     def __startCache(self):
         self.cacheTimer = QTimer()
@@ -61,10 +60,11 @@ class App(MyWindow):
 
     def receiveData(self):
         infodict = self.controller.recv()['data']
+        # print("接收到的数据为：",infodict)
         for _infodict in infodict:
             image = self.ndarrayToQPixmap(_infodict["image"])
             _infodict.update({'image': image})
-        # print("接收到的数据为：",infodict)
+
         return infodict
 
     def process(self):
@@ -76,16 +76,16 @@ class App(MyWindow):
 
     def send(self):
         try:
-            data = self.cacheQueue.get(timeout=0.2)
+            data = self.cacheQueue.get(block=False)
         except queue.Empty:
             data = []
         self.refresh(data)
 
     def writeToCacheQueue(self):
-        print('队列长度：', self.cacheQueue.qsize())
         data = self.receiveData()
         if data:
             self.cacheQueue.put(data)
+            print('队列长度：', self.cacheQueue.qsize())
 
     def ndarrayToQPixmap(self, image):
         return Image.fromarray(image).toqpixmap()

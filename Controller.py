@@ -13,13 +13,16 @@ import grequests
 import threading
 import itertools
 import traceback
+import requests
 
 
 class Controller:
+
     # __RECOGNIZE_ACTION_URL = 'http://10.176.54.14:55000/recognizeAction'
 
     __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction',
-                               'http://10.176.54.22:21602/recognizeAction']
+                               'http://10.176.54.22:21602/recognizeAction',
+                               'http://10.176.54.23:35500/recognizeAction']
 
     __ACTION_LABEL = ['站', '坐', '走', '吃', '红绳操', '毛巾操', '未知动作']
 
@@ -48,6 +51,7 @@ class Controller:
         t.start()
 
     def procRecognizeQueue(self, waitingQueueDict, responseQueue):
+
         while True:
             imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
             if not imagesData:
@@ -144,7 +148,7 @@ class Controller:
     def __processMultiResponse(self, responseList):
         mergedData = []
 
-        for response in responseList:
+        for response in filter(None,responseList):
             if response.status_code == 200:
                 res = response.json()
                 if res.get('status') == 0:

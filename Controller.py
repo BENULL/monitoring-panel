@@ -18,11 +18,12 @@ import requests
 
 class Controller:
 
-    # __RECOGNIZE_ACTION_URL = 'http://10.176.54.14:55000/recognizeAction'
+    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction']
+    # 14: 55000
+    # 'http://10.176.54.23:35500/recognizeAction'
 
-    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction',
-                               'http://10.176.54.22:21602/recognizeAction',
-                               'http://10.176.54.23:35500/recognizeAction']
+    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction',
+    #                            'http://10.176.54.22:21602/recognizeAction']
 
     __ACTION_LABEL = ['站', '坐', '走', '吃', '红绳操', '毛巾操', '未知动作']
 
@@ -36,12 +37,12 @@ class Controller:
         self.cameras = []
         self.frameCnt = 0
 
-        self.times = 0
-        self.duration = 0
+        # self.times = 0
+        # self.duration = 0
 
     def start(self):
 
-        for i in range(10):
+        for i in range(1):
             self.procVideo(f'/Users/benull/Downloads/{i}.MOV')
 
         self.startProcRecognize()
@@ -51,6 +52,8 @@ class Controller:
         t.start()
 
     def procRecognizeQueue(self, waitingQueueDict, responseQueue):
+
+        # self.sess = requests.Session()
 
         while True:
             imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
@@ -69,13 +72,13 @@ class Controller:
 
         params = [self.__buildRecognizeParam(imageList, False, False) for imageList in imageListPerCamera]
         try:
-            start = time.time()
+            # start = time.time()
 
             responseData = self.recognizeAction(params)
 
-            self.duration += (time.time() - start)
-            self.times += 1
-            print(f'{self.times}次请求平均消耗时间{self.duration / self.times * 1000}ms')
+            # self.duration += (time.time() - start)
+            # self.times += 1
+            # print(f'{self.times}次请求平均消耗时间{self.duration / self.times * 1000}ms')
 
             return list(map(self.__procResponseData, itertools.chain.from_iterable(imageListPerCamera), responseData))
 
@@ -138,8 +141,12 @@ class Controller:
         # responseList = []
         # for r in grequests.imap(requestList, size=100):
         #     responseList.append(r)
-
+        start = time.time()
+        print(f'request start at {start}')
         responseList = grequests.map(requestList)
+        end = time.time()
+        print(f'request end at {end}')
+        print(f'request cost {end-start}')
 
         # print(f'{time.time()}  endRe')
 

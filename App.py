@@ -9,11 +9,12 @@ from UiWindow import MyWindow
 import time
 import queue
 from PIL import Image
+import multiprocessing
 
 
 class App(MyWindow):
-    __CACHE_QUEUE_LENGTH = 50
 
+    __CACHE_QUEUE_LENGTH = 50
     __CACHE_INTERVAL = 20
     __REFRESH_INTERVAL = 40
 

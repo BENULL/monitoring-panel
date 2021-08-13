@@ -18,18 +18,21 @@ import requests
 
 class Controller:
 
-    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction']
-    # 14: 55000
-    # 'http://10.176.54.23:35500/recognizeAction'
+    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction']
 
-    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:22502/recognizeAction',
+    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction',
+    #                            'http://10.176.54.23:35500/recognizeAction',
     #                            'http://10.176.54.22:21602/recognizeAction']
 
-    __ACTION_LABEL = ['站', '坐', '走', '吃', '红绳操', '毛巾操', '未知动作']
+    __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未知动作']
+
+    # __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '跌倒', '未知动作']
+
+    # __ACTION_LABEL = ['吃', '玩手机', '坐', '睡觉', '站', '红绳操', '毛巾操', '走', '跌倒', '未知动作']
 
     __QUEUE_GET_TIMEOUT = 0.1
-
     __RECOGNIZE_PER_FRAME = 5
+    __WAITING_QUEUE_MAXSIZE = 100
 
     def __init__(self):
         self.waitingQueueDict = dict()
@@ -43,17 +46,17 @@ class Controller:
     def start(self):
 
         for i in range(1):
-            self.procVideo(f'/Users/benull/Downloads/{i}.MOV')
+            self.procVideo(f'/Users/benull/Downloads/action_video/{i}.MOV')
 
         self.startProcRecognize()
 
     def startProcRecognize(self):
         t = threading.Thread(target=self.procRecognizeQueue, args=(self.waitingQueueDict, self.responseQueue,))
         t.start()
+        # p = multiprocessing.Process(target=self.procRecognizeQueue, args=(self.waitingQueueDict, self.responseQueue,))
+        # p.start()
 
     def procRecognizeQueue(self, waitingQueueDict, responseQueue):
-
-        # self.sess = requests.Session()
 
         while True:
             imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
@@ -73,15 +76,11 @@ class Controller:
         params = [self.__buildRecognizeParam(imageList, False, False) for imageList in imageListPerCamera]
         try:
             # start = time.time()
-
             responseData = self.recognizeAction(params)
-
             # self.duration += (time.time() - start)
             # self.times += 1
             # print(f'{self.times}次请求平均消耗时间{self.duration / self.times * 1000}ms')
-
             return list(map(self.__procResponseData, itertools.chain.from_iterable(imageListPerCamera), responseData))
-
         except Exception as e:
             # traceback.print_exc()
             return []
@@ -126,7 +125,7 @@ class Controller:
     def procVideo(self, camera):
         videoCapture = VideoCapture(camera)
         self.cameras.append(camera)
-        self.waitingQueueDict[camera] = Queue(maxsize=100)
+        self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
         p = multiprocessing.Process(target=videoCapture.captureFrame, args=(self.waitingQueueDict[camera],))
         p.start()
 
@@ -141,12 +140,14 @@ class Controller:
         # responseList = []
         # for r in grequests.imap(requestList, size=100):
         #     responseList.append(r)
-        start = time.time()
-        print(f'request start at {start}')
+        # start = time.time()
+        # print(f'request start at {start}')
+
         responseList = grequests.map(requestList)
-        end = time.time()
-        print(f'request end at {end}')
-        print(f'request cost {end-start}')
+
+        # end = time.time()
+        # print(f'request end at {end}')
+        # print(f'request cost {end-start}')
 
         # print(f'{time.time()}  endRe')
 
@@ -155,7 +156,7 @@ class Controller:
     def __processMultiResponse(self, responseList):
         mergedData = []
 
-        for response in filter(None,responseList):
+        for response in filter(None, responseList):
             if response.status_code == 200:
                 res = response.json()
                 if res.get('status') == 0:

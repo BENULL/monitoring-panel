@@ -3,7 +3,6 @@ import cv2
 import os
 from multiprocessing import Queue
 import signal
-
 cv2.setNumThreads(0)
 
 
@@ -18,7 +17,7 @@ class VideoCapture:
         # cap = cv2.VideoCapture("rtp://127.0.0.1:55555")
         frameNum = 1
         ret, frame = cap.read()
-        while (ret):
+        while ret:
             frame = cv2.resize(frame, (480, 360))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             queue.put((self.camera, frameNum, frame))

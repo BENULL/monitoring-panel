@@ -12,6 +12,7 @@ import time
 import grequests
 import threading
 import itertools
+from Util import renderPose, renderBbox
 import traceback
 import requests
 
@@ -39,6 +40,8 @@ class Controller:
         self.responseQueue = Queue()
         self.cameras = []
         self.frameCnt = 0
+        self.showPose = True
+        self.showBox = False
 
         # self.times = 0
         # self.duration = 0
@@ -53,6 +56,7 @@ class Controller:
     def startProcRecognize(self):
         t = threading.Thread(target=self.procRecognizeQueue, args=(self.waitingQueueDict, self.responseQueue,))
         t.start()
+
         # p = multiprocessing.Process(target=self.procRecognizeQueue, args=(self.waitingQueueDict, self.responseQueue,))
         # p.start()
 
@@ -73,7 +77,7 @@ class Controller:
 
         imageListPerCamera = self.__buildImageListPerCamera(imagesData)
 
-        params = [self.__buildRecognizeParam(imageList, False, False) for imageList in imageListPerCamera]
+        params = [self.__buildRecognizeParam(imageList, self.showPose, self.showBox) for imageList in imageListPerCamera]
         try:
             # start = time.time()
             responseData = self.recognizeAction(params)
@@ -111,8 +115,20 @@ class Controller:
 
     def __procResponseData(self, origin, response=dict()):
         camera, frameNum, image = origin
+        image = self.__showPoseAndBox(image, response)
         label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
         return dict(camera=str(self.cameras.index(camera)), frameNum=frameNum, image=image, label=label)
+
+    def __showPoseAndBox(self, image, response):
+        if not response.get('personInfo'):
+            return image
+        pose = response['personInfo'][0]['pose']
+        box = response['personInfo'][0]['box']
+        if self.showPose and pose:
+            image = renderPose(image, pose)
+        if self.showBox and box:
+            image = renderBbox(image, box)
+        return image
 
     def __buildRecognizeParam(self, images, pose: bool = False, box: bool = False):
         if not images: return None

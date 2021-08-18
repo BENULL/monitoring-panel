@@ -43,12 +43,9 @@ class Controller:
         self.showPose = False
         self.showBox = False
 
-        # self.times = 0
-        # self.duration = 0
-
     def start(self):
 
-        for i in range(1):
+        for i in range(4):
             self.procVideo(f'/Users/benull/Downloads/action_video/{i}.MOV')
 
         self.startProcRecognize()
@@ -66,7 +63,6 @@ class Controller:
             imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
             if not imagesData:
                 continue
-
             if needRecognize:
                 # pass
                 responseQueue.put(self.__requestRecognizeAction(imagesData))
@@ -76,17 +72,11 @@ class Controller:
     def __requestRecognizeAction(self, imagesData):
 
         imageListPerCamera = self.__buildImageListPerCamera(imagesData)
-
         params = [self.__buildRecognizeParam(imageList, self.showPose, self.showBox) for imageList in imageListPerCamera]
         try:
-            # start = time.time()
             responseData = self.recognizeAction(params)
-            # self.duration += (time.time() - start)
-            # self.times += 1
-            # print(f'{self.times}次请求平均消耗时间{self.duration / self.times * 1000}ms')
             return list(map(self.__procResponseData, itertools.chain.from_iterable(imageListPerCamera), responseData))
         except Exception as e:
-            # traceback.print_exc()
             return []
 
     def __buildImageListPerCamera(self, imagesData):
@@ -146,27 +136,8 @@ class Controller:
         p.start()
 
     def recognizeAction(self, params):
-        # import os
-        # print(f'{os.getpid()} recog ')
-        # import time
-        # print(f'{time.time()}  startRe')
-
         requestList = self.__buildRequestList(params)
-
-        # responseList = []
-        # for r in grequests.imap(requestList, size=100):
-        #     responseList.append(r)
-        # start = time.time()
-        # print(f'request start at {start}')
-
         responseList = grequests.map(requestList)
-
-        # end = time.time()
-        # print(f'request end at {end}')
-        # print(f'request cost {end-start}')
-
-        # print(f'{time.time()}  endRe')
-
         return self.__processMultiResponse(responseList)
 
     def __processMultiResponse(self, responseList):

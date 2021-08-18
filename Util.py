@@ -39,9 +39,9 @@ _OPENPOSE_EDGE_COLORS = [
 RENDER_CONFIG_OPENPOSE = {
     'edges': _OPENPOSE_EDGES,
     'edgeColors': _OPENPOSE_EDGE_COLORS,
-    'edgeWidth': 10,
+    'edgeWidth': 2,
     'pointColors': _OPENPOSE_POINT_COLORS,
-    'pointRadius': 14
+    'pointRadius': 3
 }
 
 
@@ -84,7 +84,7 @@ def renderPose(image, poses, inplace: bool = True, inverseNormalization='auto'):
     返回
         输出图像, inplace为True时返回image, 为False时返回新的图像
     """
-    image = np.array(image)
+    poses = np.array(poses)
     if not inplace:
         image = image.copy()
 
@@ -112,7 +112,7 @@ def renderPose(image, poses, inplace: bool = True, inverseNormalization='auto'):
 
 
 def renderBbox(image, box, inplace: bool = True, inverseNormalization='auto'):
-    image = np.array(image)
+    box = np.array(box)
     if not inplace:
         image = image.copy()
 
@@ -120,18 +120,18 @@ def renderBbox(image, box, inplace: bool = True, inverseNormalization='auto'):
         raise ValueError(f'Unknown "inverseNormalization" value {inverseNormalization}')
     box = box.reshape(2, 2)
     box = prepareBbox(box, (image.shape[1], image.shape[0]), inverseNormalization)
-    cv2.rectangle(image, tuple(box[0]), tuple(box[0]+box[1]), (0, 0, 255), thickness=3)
+    cv2.rectangle(image, tuple(box[0]), tuple(box[0]+box[1]), (255, 0, 0), thickness=1)
     return image
 
 
 if __name__ == '__main__':
-    Bbox = np.array([
+    box = np.array([
         0.269108878241645,
         0.4650149345397949,
         0.35790460374620225,
         0.5267127990722656
     ])
-    Ppose = np.array([
+    pose = np.array([
         [
             0.39354264736175537,
             0.48819002509117126,
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     ])
 
     img = cv2.imread('/Users/benull/Downloads/3754.jpg')
-    renderPoseImage = renderPose(img, Ppose, inplace=False)
-    renderBboxImage = renderBbox(renderPoseImage, Bbox, inplace=False)
+    renderPoseImage = renderPose(img, pose, inplace=False)
+    renderBboxImage = renderBbox(renderPoseImage, box, inplace=False)
     cv2.imshow('poseAndBox', renderBboxImage)
     cv2.waitKey()

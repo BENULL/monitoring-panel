@@ -20,7 +20,6 @@ class App(MyMainWindow):
 
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
-        # self.setupUi()
         self.controller = Controller()
         self.establishConnections()
 
@@ -40,11 +39,6 @@ class App(MyMainWindow):
             self.__refreshScreen(imageInfo)
 
     def __refreshScreen(self, info: dict):
-        # import os
-        # print(f'{os.getpid()} refresh ')
-        # import time
-        # print(f'{time.time()}  refresh')
-
         screen = self.myWindow.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])
@@ -69,7 +63,6 @@ class App(MyMainWindow):
 
     def receiveData(self):
         infodict = self.controller.recv()['data']
-        # print("接收到的数据为：",infodict)
         for _infodict in infodict:
             image = self.ndarrayToQPixmap(_infodict["image"])
             _infodict.update({'image': image})

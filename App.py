@@ -5,14 +5,14 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import *
 from Controller import Controller
-from UiWindow import MyWindow
+from UiWindow import MyWindow, MyMainWindow
 import time
 import queue
 from PIL import Image
 import multiprocessing
 
 
-class App(MyWindow):
+class App(MyMainWindow):
 
     __CACHE_QUEUE_LENGTH = 50
     __CACHE_INTERVAL = 20
@@ -20,12 +20,20 @@ class App(MyWindow):
 
     def __init__(self, *args, **kwargs):
         super(App, self).__init__(*args, **kwargs)
-        self.setupUi()
+        # self.setupUi()
         self.controller = Controller()
         self.establishConnections()
 
     def establishConnections(self):
-        self.buttonLabel.connect_customized_slot(self.start)
+        self.myWindow.buttonLabel.connect_customized_slot(self.start)
+        self.showPoseAct.triggered.connect(self.showPoseActTrigger)
+        self.showBboxAct.triggered.connect(self.showBboxActTrigger)
+
+    def showPoseActTrigger(self, state):
+        self.controller.showPose = True if state else False
+
+    def showBboxActTrigger(self, state):
+        self.controller.showBox = True if state else False
 
     def refresh(self, imageInfos):
         for imageInfo in imageInfos:
@@ -37,7 +45,7 @@ class App(MyWindow):
         # import time
         # print(f'{time.time()}  refresh')
 
-        screen = self.screenByCamera[info["camera"]]
+        screen = self.myWindow.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])
         screen.repaint()

@@ -62,13 +62,14 @@ class MyWindow(QWidget):
 
     def __init__(self, parent=None):
         super(MyWindow, self).__init__(parent)
+        self.setupUi()
 
     def setupUi(self):
         gridLayout = QGridLayout()
         # self.setGeometry(0,0,1920, 1080)
-        self.setGeometry(0, 0, 1920, 820)
 
-        self.setStyleSheet("background:black")
+        # self.setGeometry(0, 0, 1920, 820)
+        # self.setStyleSheet("background:black")
 
         self.buttonLabel = MyQLabel(self)
         # self.buttonLabel.setStyleSheet("background:#3c4046")
@@ -104,5 +105,30 @@ class MyWindow(QWidget):
         gridLayout.setSpacing(2)
         gridLayout.setContentsMargins(2, 2, 2, 2)  # 设置外边距--控件到窗口边框的距离 左上右下
         self.setLayout(gridLayout)
+        # self.setWindowTitle("10路视频演示")
+
+
+class MyMainWindow(QMainWindow):
+
+    def __init__(self,):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+        self.setGeometry(0, 0, 1920, 820)
+        self.setStyleSheet("background:black")
+        self.myWindow = MyWindow()
+        self.setCentralWidget(self.myWindow)
         self.setWindowTitle("10路视频演示")
+        menubar = self.menuBar()
+        viewMenu = menubar.addMenu('显示')
+        self.showPoseAct = QAction('显示骨架', self,)
+        self.showBboxAct = QAction('显示包围盒', self,)
+        self.showBboxAct.setCheckable(True)
+        self.showPoseAct.setCheckable(True)
+        viewMenu.addAction(self.showPoseAct)
+        viewMenu.addAction(self.showBboxAct)
+
+
+
 

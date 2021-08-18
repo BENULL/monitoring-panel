@@ -40,7 +40,7 @@ class Controller:
         self.responseQueue = Queue()
         self.cameras = []
         self.frameCnt = 0
-        self.showPose = True
+        self.showPose = False
         self.showBox = False
 
         # self.times = 0

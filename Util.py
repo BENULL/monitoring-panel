@@ -45,26 +45,16 @@ RENDER_CONFIG_OPENPOSE = {
 }
 
 
-def preparePose(pose, imageSize, invNorm):
+def preparePoint(points, imageSize, invNorm):
     if invNorm == 'auto':
-        invNorm = np.bitwise_and(pose >= 0, pose <= 1).all()
+        invNorm = np.bitwise_and(points >= 0, points <= 1).all()
 
     if invNorm:
         w, h = imageSize
         trans = np.array([[w, 0], [0, h]])
-        pose = (trans @ pose.T).T
+        points = (trans @ points.T).T
 
-    return pose.astype(np.int32)
-
-
-def prepareBbox(box, imageSize, invNorm):
-    if invNorm == 'auto':
-        invNorm = np.bitwise_and(box >= 0, box <= 1).all()
-    if invNorm:
-        w, h = imageSize
-        trans = np.array([[w, 0], [0, h]])
-        box = (trans @ box.T).T
-    return box.astype(np.int32)
+    return points.astype(np.int32)
 
 
 def renderPose(image, poses, inplace: bool = True, inverseNormalization='auto'):
@@ -97,7 +87,7 @@ def renderPose(image, poses, inplace: bool = True, inverseNormalization='auto'):
     _isPointValid = lambda point: point[0] != 0 and point[1] != 0
     _FILL_CIRCLE = -1
     for pose in poses:
-        pose = preparePose(pose, (image.shape[1], image.shape[0]), inverseNormalization)
+        pose = preparePoint(pose, (image.shape[1], image.shape[0]), inverseNormalization)
         validPointIndices = set(filter(lambda i: _isPointValid(pose[i]), range(pose.shape[0])))
         for i, (start, end) in enumerate(RENDER_CONFIG_OPENPOSE['edges']):
             if start in validPointIndices and end in validPointIndices:
@@ -112,15 +102,15 @@ def renderPose(image, poses, inplace: bool = True, inverseNormalization='auto'):
 
 
 def renderBbox(image, box, inplace: bool = True, inverseNormalization='auto'):
-    box = np.array(box)
     if not inplace:
         image = image.copy()
 
     if inverseNormalization not in ['auto', True, False]:
         raise ValueError(f'Unknown "inverseNormalization" value {inverseNormalization}')
-    box = box.reshape(2, 2)
-    box = prepareBbox(box, (image.shape[1], image.shape[0]), inverseNormalization)
-    cv2.rectangle(image, tuple(box[0]), tuple(box[0]+box[1]), (255, 0, 0), thickness=1)
+    if len(box) == 4:
+        box = np.array(box).reshape(2, 2)
+        box = preparePoint(box, (image.shape[1], image.shape[0]), inverseNormalization)
+        cv2.rectangle(image, tuple(box[0]), tuple(box[0]+box[1]), (255, 0, 0), thickness=1)
     return image
 
 

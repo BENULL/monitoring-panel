@@ -36,14 +36,16 @@ class Controller:
         self.responseQueue = Queue()
         self.cameras = []
         self.frameCnt = 0
-        self.showPose = False
+        self.showPose = True
         self.showBox = False
         self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
     def start(self):
 
-        for i in range(2):
-            self.procVideo(f'/Users/benull/Downloads/action_video/{i}.MOV')
+        # for i in range(1):
+            # self.procVideo(f'/Users/benull/Downloads/action_video/{i}.MOV')
+        self.procVideo(f'rtsp://admin:HikKXBKYC@10.177.58.221/Streaming/Channels/101')
+        # self.procVideo(f'rtsp://admin:1234abcd@10.177.60.243/h264/ch1/main/av_stream')
 
         self.startProcRecognize()
 
@@ -99,26 +101,39 @@ class Controller:
 
     def __procResponseData(self, origin, response=dict()):
         camera, frameNum, image = origin
-        image = self.__showPoseAndBox(camera, image, response)
+        image = self.__showPoseAndBox(image, response)
         label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
         return dict(camera=str(self.cameras.index(camera)), frameNum=frameNum, image=image, label=label)
 
-    def __showPoseAndBox(self, camera, image, response):
-        if response.get('personInfo'):
-            self.poseAndBoxByCamera[camera]['pose'] = response['personInfo'][0]['pose']
-            self.poseAndBoxByCamera[camera]['box'] = response['personInfo'][0]['box']
-            self.poseAndBoxByCamera[camera]['interval'] = 0
-        else:
-            self.poseAndBoxByCamera[camera]['interval'] += 1
 
-        if self.poseAndBoxByCamera[camera]['interval'] > Controller.__RECOGNIZE_PER_FRAME:
-            self.poseAndBoxByCamera[camera]['pose'] = None
-            self.poseAndBoxByCamera[camera]['box'] = None
+    # fix inconsistencies in pose refresh
+    # def __showPoseAndBox(self, camera, image, response):
+    #     if response.get('personInfo'):
+    #         self.poseAndBoxByCamera[camera]['pose'] = response['personInfo'][0]['pose']
+    #         self.poseAndBoxByCamera[camera]['box'] = response['personInfo'][0]['box']
+    #         self.poseAndBoxByCamera[camera]['interval'] = 0
+    #     else:
+    #         self.poseAndBoxByCamera[camera]['interval'] += 1
+    #
+    #     if self.poseAndBoxByCamera[camera]['interval'] > Controller.__RECOGNIZE_PER_FRAME:
+    #         self.poseAndBoxByCamera[camera]['pose'] = None
+    #         self.poseAndBoxByCamera[camera]['box'] = None
+    #
+    #     if self.showPose and self.poseAndBoxByCamera[camera]['pose']:
+    #         image = renderPose(image, self.poseAndBoxByCamera[camera]['pose'])
+    #     if self.showBox and self.poseAndBoxByCamera[camera]['box']:
+    #         image = renderBbox(image, self.poseAndBoxByCamera[camera]['box'])
+    #     return image
 
-        if self.showPose and self.poseAndBoxByCamera[camera]['pose']:
-            image = renderPose(image, self.poseAndBoxByCamera[camera]['pose'])
-        if self.showBox and self.poseAndBoxByCamera[camera]['box']:
-            image = renderBbox(image, self.poseAndBoxByCamera[camera]['box'])
+    def __showPoseAndBox(self, image, response):
+        if not response.get('personInfo'):
+            return image
+        pose = response['personInfo'][0]['pose']
+        box = response['personInfo'][0]['box']
+        if self.showPose and pose:
+            image = renderPose(image, pose)
+        if self.showBox and box:
+            image = renderBbox(image, box)
         return image
 
     def __buildRecognizeParam(self, images, pose: bool = False, box: bool = False):

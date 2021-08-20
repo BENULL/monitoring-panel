@@ -126,6 +126,7 @@ class MyMainWindow(QMainWindow):
         self.showBboxAct = QAction('显示包围盒', self,)
         self.showBboxAct.setCheckable(True)
         self.showPoseAct.setCheckable(True)
+        self.showPoseAct.setChecked(True)
         viewMenu.addAction(self.showPoseAct)
         viewMenu.addAction(self.showBboxAct)
 

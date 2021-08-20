@@ -2,7 +2,6 @@
 import cv2
 import os
 from multiprocessing import Queue
-import signal
 cv2.setNumThreads(0)
 
 
@@ -14,7 +13,6 @@ class VideoCapture:
     def captureFrame(self, queue: Queue):
         print(f'{self.camera}开始处理')
         cap = cv2.VideoCapture(self.camera)
-        # cap = cv2.VideoCapture("rtp://127.0.0.1:55555")
         frameNum = 1
         ret, frame = cap.read()
         while ret:
@@ -27,14 +25,11 @@ class VideoCapture:
         queue.put('DONE')
         print(f'{self.camera}进程{os.getpid()}处理完成')
 
-        # os.kill(os.getpid(), signal.SIGTERM)
-
 
 if __name__ == '__main__':
 
     import cv2
-
-    cap = cv2.VideoCapture("rtp://127.0.0.1:1234")
+    cap = cv2.VideoCapture("rtsp://admin:HikKXBKYC@192.168.1.102/Streaming/Channels/101")
     ret, frame = cap.read()
     while ret:
         ret, frame = cap.read()

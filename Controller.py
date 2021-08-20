@@ -15,11 +15,12 @@ from Util import renderPose, renderBbox
 
 class Controller:
 
-    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction']
+    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction']
 
-    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction',
-    #                            'http://10.176.54.23:35500/recognizeAction',
-    #                            'http://10.176.54.22:21602/recognizeAction']
+    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction',
+                               # 'http://10.176.54.23:35500/recognizeAction',
+                               # 'http://10.176.54.22:21602/recognizeAction'
+                               ]
 
     __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未知动作']
 
@@ -40,12 +41,17 @@ class Controller:
         self.showBox = False
         self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
+        self.sources = [
+            '/Users/benull/Downloads/action_video/0.MOV',
+        ]
+
     def start(self):
 
         # for i in range(1):
             # self.procVideo(f'/Users/benull/Downloads/action_video/{i}.MOV')
-        self.procVideo(f'rtsp://admin:HikKXBKYC@10.177.58.221/Streaming/Channels/101')
-        # self.procVideo(f'rtsp://admin:1234abcd@10.177.60.243/h264/ch1/main/av_stream')
+
+        for source in self.sources:
+            self.procVideo(source)
 
         self.startProcRecognize()
 
@@ -182,6 +188,9 @@ class Controller:
             pass
         finally:
             return dict(data=res)
+
+
+
 
 
 if __name__ == '__main__':

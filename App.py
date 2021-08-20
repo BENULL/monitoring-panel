@@ -1,7 +1,7 @@
 # coding = utf-8
 import sys
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt5 import QtGui
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import *
 from Controller import Controller
@@ -91,6 +91,10 @@ class App(MyMainWindow):
 
     def ndarrayToQPixmap(self, image):
         return Image.fromarray(image).toqpixmap()
+
+    def closeEvent(self, event: QtGui.QCloseEvent) -> None:
+        self.controller.terminalProcesses()
+        event.accept()
 
 
 if __name__ == '__main__':

@@ -35,21 +35,21 @@ class Controller:
     def __init__(self):
         self.waitingQueueDict = dict()
         self.responseQueue = Queue()
-        self.cameras = []
-        self.frameCnt = 0
+        self.__cameras = []
+        self.__processes = []
+        self.__frameCnt = 0
         self.showPose = True
         self.showBox = False
         self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
         self.sources = [
             '/Users/benull/Downloads/action_video/0.MOV',
+            # 'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
+            # 'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
+            # 'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
         ]
 
     def start(self):
-
-        # for i in range(1):
-            # self.procVideo(f'/Users/benull/Downloads/action_video/{i}.MOV')
-
         for source in self.sources:
             self.procVideo(source)
 
@@ -66,7 +66,6 @@ class Controller:
             if not imagesData:
                 continue
             if needRecognize:
-                # pass
                 responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
                 responseQueue.put(list(map(self.__procResponseData, filter(None, imagesData))))
@@ -87,8 +86,8 @@ class Controller:
 
     def __gainFramePerVideo(self, waitingQueueDict):
         imagesData = []
-        needRecognize = self.frameCnt % Controller.__RECOGNIZE_PER_FRAME == 0
-        for camera in self.cameras:
+        needRecognize = self.__frameCnt % Controller.__RECOGNIZE_PER_FRAME == 0
+        for camera in self.__cameras:
             if camera not in waitingQueueDict:
                 imagesData.append(None)
                 continue
@@ -102,14 +101,14 @@ class Controller:
             except queue.Empty:
                 imagesData.append(None)
 
-        self.frameCnt += 1
+        self.__frameCnt += 1
         return imagesData, needRecognize
 
     def __procResponseData(self, origin, response=dict()):
         camera, frameNum, image = origin
         image = self.__showPoseAndBox(image, response)
         label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
-        return dict(camera=str(self.cameras.index(camera)), frameNum=frameNum, image=image, label=label)
+        return dict(camera=str(self.__cameras.index(camera)), frameNum=frameNum, image=image, label=label)
 
 
     # fix inconsistencies in pose refresh
@@ -152,9 +151,10 @@ class Controller:
 
     def procVideo(self, camera):
         videoCapture = VideoCapture(camera)
-        self.cameras.append(camera)
+        self.__cameras.append(camera)
         self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
         p = multiprocessing.Process(target=videoCapture.captureFrame, args=(self.waitingQueueDict[camera],))
+        self.__processes.append(p)
         p.start()
 
     def recognizeAction(self, params):
@@ -177,20 +177,21 @@ class Controller:
         return mergedData
 
     def __buildRequestList(self, params):
-        return [grequests.post(url, data=json.dumps(param)) for url, param in
+        return [grequests.post(url, data=json.dumps(param), timeout=(1, 3)) for url, param in
                 zip(Controller.__RECOGNIZE_ACTION_URLS, params) if param]
 
     def recv(self):
         res = []
         try:
-            res = self.responseQueue.get(timeout=Controller.__QUEUE_GET_TIMEOUT)  # block=False
+            res = self.responseQueue.get(timeout=Controller.__QUEUE_GET_TIMEOUT)
         except queue.Empty:
             pass
         finally:
             return dict(data=res)
 
-
-
+    def terminalProcesses(self,):
+        for process in self.__processes:
+            process.terminate()
 
 
 if __name__ == '__main__':

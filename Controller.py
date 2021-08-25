@@ -10,6 +10,7 @@ import cv2
 import grequests
 import threading
 import itertools
+import traceback
 from collections import defaultdict
 from Util import renderPose, renderBbox
 
@@ -80,6 +81,7 @@ class Controller:
             responseData = self.recognizeAction(params)
             return list(map(self.__procResponseData, itertools.chain.from_iterable(imageListPerCamera), responseData))
         except Exception as e:
+            traceback.print_exc()
             return []
 
     def __buildImageListPerCamera(self, imagesData):
@@ -162,12 +164,15 @@ class Controller:
     def recognizeAction(self, params):
         requestList = self.__buildRequestList(params)
         responseList = grequests.map(requestList)
-        return self.__processMultiResponse(responseList)
+        return self.__processMultiResponse(requestList, responseList)
 
-    def __processMultiResponse(self, responseList):
+    def __processMultiResponse(self, requestList, responseList):
         mergedData = []
-
-        for response in filter(None, responseList):
+        for request, response in zip(requestList, responseList):
+            if response is None:
+                imagesNum = len(json.loads(request.kwargs['data'])['images'])
+                mergedData.extend([dict() for _ in range(imagesNum)])
+                continue
             if response.status_code == 200:
                 res = response.json()
                 if res.get('status') == 0:

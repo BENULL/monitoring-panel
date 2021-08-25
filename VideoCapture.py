@@ -7,8 +7,9 @@ cv2.setNumThreads(0)
 
 class VideoCapture:
 
-    def __init__(self, camera):
+    def __init__(self, camera, channel):
         self.camera = camera
+        self.channel = channel
 
     def captureFrame(self, queue: Queue):
         print(f'{self.camera}开始处理')
@@ -18,7 +19,7 @@ class VideoCapture:
         while ret:
             frame = cv2.resize(frame, (480, 360))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            queue.put((self.camera, frameNum, frame))
+            queue.put((self.channel, frameNum, frame))
             frameNum += 1
             ret, frame = cap.read()
         cap.release()

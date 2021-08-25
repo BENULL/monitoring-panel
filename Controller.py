@@ -15,11 +15,11 @@ from Util import renderPose, renderBbox
 
 class Controller:
 
-    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction']
-
-    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction',
-                               # 'http://10.176.54.23:35500/recognizeAction',
-                               # 'http://10.176.54.22:21602/recognizeAction'
+    __RECOGNIZE_ACTION_URLS = [
+                               'http://10.176.54.24:55000/recognizeAction',
+                               # 'http://10.176.54.14:55000/recognizeAction',
+                               'http://10.176.54.41:55000/recognizeAction',
+                               'http://10.176.54.42:55000/recognizeAction',
                                ]
 
     __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未知动作']
@@ -40,14 +40,16 @@ class Controller:
         self.__frameCnt = 0
         self.showPose = True
         self.showBox = False
-        self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
+        # self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
         self.sources = [
-            '/Users/benull/Downloads/action_video/0.MOV',
+            f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(10)
+        ]
+
             # 'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
             # 'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
             # 'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
-        ]
+
 
     def start(self):
         for source in self.sources:
@@ -108,8 +110,7 @@ class Controller:
         camera, frameNum, image = origin
         image = self.__showPoseAndBox(image, response)
         label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
-        return dict(camera=str(self.__cameras.index(camera)), frameNum=frameNum, image=image, label=label)
-
+        return dict(camera=str(camera), frameNum=frameNum, image=image, label=label)
 
     # fix inconsistencies in pose refresh
     # def __showPoseAndBox(self, camera, image, response):
@@ -144,14 +145,15 @@ class Controller:
     def __buildRecognizeParam(self, images, pose: bool = False, box: bool = False):
         if not images: return None
         images = list(map(
-            lambda image: {'camera': image[0], 'image': base64.b64encode(cv2.imencode('.jpg', image[2])[1]).decode()},
+            lambda image: {'camera': str(image[0]), 'image': base64.b64encode(cv2.imencode('.jpg', image[2])[1]).decode()},
             images))
         option = dict(pose=pose, box=box)
         return dict(images=images, option=option)
 
     def procVideo(self, camera):
-        videoCapture = VideoCapture(camera)
         self.__cameras.append(camera)
+        videoCapture = VideoCapture(camera, self.__cameras.index(camera))
+
         self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
         p = multiprocessing.Process(target=videoCapture.captureFrame, args=(self.waitingQueueDict[camera],))
         self.__processes.append(p)

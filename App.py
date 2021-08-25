@@ -14,7 +14,7 @@ import multiprocessing
 
 class App(MyMainWindow):
 
-    __CACHE_QUEUE_LENGTH = 50
+    __CACHE_QUEUE_LENGTH = 40
     __CACHE_INTERVAL = 20
     __REFRESH_INTERVAL = 40
 

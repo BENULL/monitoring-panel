@@ -2,14 +2,12 @@
 import sys
 from PyQt5.QtCore import *
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import *
 from Controller import Controller
 from UiWindow import MyWindow, MyMainWindow
-import time
 import queue
 from PIL import Image
-import multiprocessing
+
 
 
 class App(MyMainWindow):

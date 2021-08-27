@@ -37,7 +37,7 @@ class VideoCapture:
         queue.put('DONE')
         print(f'{self.camera} end')
 
-    def captureFrameByFffmpeg(self, queue):
+    def captureFrameByFfmpeg(self, queue):
         print(f'{self.camera} begin by ffmpeg')
         # probe = ffmpeg.probe(self.camera)
         # video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)

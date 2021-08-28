@@ -14,24 +14,25 @@ import traceback
 from collections import defaultdict
 from Util import renderPose, renderBbox
 
+
 class Controller:
 
     __RECOGNIZE_ACTION_URLS = [
                                'http://10.176.54.24:55000/recognizeAction',
-                               # 'http://10.176.54.14:55000/recognizeAction',
-                               'http://10.176.54.41:55000/recognizeAction',
-                               'http://10.176.54.42:55000/recognizeAction',
+                               # 'http://192.168.10.148:55000/recognizeAction',
+                               # 'http://192.168.10.88:55000/recognizeAction',
+                               # 'http://192.168.10.223:55000/recognizeAction',
                                ]
 
-    __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未知动作']
+    __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未定义行为']
 
-    # __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '跌倒', '未知动作']
+    # __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '跌倒', '未定义行为']
 
-    # __ACTION_LABEL = ['吃', '玩手机', '坐', '睡觉', '站', '红绳操', '毛巾操', '走', '跌倒', '未知动作']
+    # __ACTION_LABEL = ['吃', '玩手机', '坐', '睡觉', '站', '红绳操', '毛巾操', '走', '跌倒', '未定义行为']
 
     __QUEUE_GET_TIMEOUT = 0.1
     __RECOGNIZE_PER_FRAME = 5
-    __WAITING_QUEUE_MAXSIZE = 100
+    __WAITING_QUEUE_MAXSIZE = 50
 
     def __init__(self):
         self.waitingQueueDict = dict()
@@ -41,15 +42,23 @@ class Controller:
         self.__frameCnt = 0
         self.showPose = True
         self.showBox = False
-        # self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
+        self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
         self.sources = [
-            f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(10)
-        ]
+            f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(1)]
+            # 'rtsp://admin:1234abcd@10.177.60.243/h264/ch1/main/av_stream',
 
             # 'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
+            # 'rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101',
+            # 'rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101',
             # 'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
             # 'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
+            # 'rtsp://admin:BDKJTB@192.168.10.242/Streaming/Channels/101',
+            # 'rtsp://admin:BKJFKN@192.168.10.198/Streaming/Channels/101',
+            # 'rtsp://admin:TYVSZA@192.168.10.201/Streaming/Channels/101',
+            # 'rtsp://admin:EUXWYZ@192.168.10.202/Streaming/Channels/101',
+            # 'rtsp://admin:AKNUVS@192.168.10.203/Streaming/Channels/101',
+        # ]
 
 
     def start(self):
@@ -69,6 +78,7 @@ class Controller:
             if not imagesData:
                 continue
             if needRecognize:
+                # pass
                 responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
                 responseQueue.put(list(map(self.__procResponseData, filter(None, imagesData))))
@@ -175,7 +185,7 @@ class Controller:
                 continue
             if response.status_code == 200:
                 res = response.json()
-                if res.get('status') == 0:
+                if res.get('status') == 0 or res.get('status') == 3:
                     mergedData.extend(res.get('data'))
                 else:
                     raise Exception('Recognize Error: ' + res.get('message'))

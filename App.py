@@ -2,19 +2,17 @@
 import sys
 from PyQt5.QtCore import *
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtWidgets import *
 from Controller import Controller
 from UiWindow import MyWindow, MyMainWindow
-import time
 import queue
 from PIL import Image
-import multiprocessing
+
 
 
 class App(MyMainWindow):
 
-    __CACHE_QUEUE_LENGTH = 50
+    __CACHE_QUEUE_LENGTH = 40
     __CACHE_INTERVAL = 20
     __REFRESH_INTERVAL = 40
 
@@ -42,7 +40,7 @@ class App(MyMainWindow):
         screen = self.myWindow.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])
-        screen.repaint()
+        # screen.repaint()
 
     def __startRefresh(self):
         self.refreshTimer = QTimer()
@@ -87,7 +85,7 @@ class App(MyMainWindow):
         data = self.receiveData()
         if data:
             self.cacheQueue.put(data)
-            print('队列长度：', self.cacheQueue.qsize())
+            print('queue size ', self.cacheQueue.qsize())
 
     def ndarrayToQPixmap(self, image):
         return Image.fromarray(image).toqpixmap()

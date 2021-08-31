@@ -10,27 +10,29 @@ import cv2
 import grequests
 import threading
 import itertools
+import traceback
 from collections import defaultdict
 from Util import renderPose, renderBbox
 
+
 class Controller:
 
-    # __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction']
-
-    __RECOGNIZE_ACTION_URLS = ['http://10.176.54.24:55000/recognizeAction',
-                               # 'http://10.176.54.23:35500/recognizeAction',
-                               # 'http://10.176.54.22:21602/recognizeAction'
+    __RECOGNIZE_ACTION_URLS = [
+                               # 'http://10.176.54.24:55000/recognizeAction',
+                               'http://192.168.10.148:55000/recognizeAction',
+                               'http://192.168.10.88:55000/recognizeAction',
+                               'http://192.168.10.223:55000/recognizeAction',
                                ]
 
-    __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未知动作']
+    __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未定义行为']
 
-    # __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '跌倒', '未知动作']
+    # __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '跌倒', '未定义行为']
 
-    # __ACTION_LABEL = ['吃', '玩手机', '坐', '睡觉', '站', '红绳操', '毛巾操', '走', '跌倒', '未知动作']
+    # __ACTION_LABEL = ['吃', '玩手机', '坐', '睡觉', '站', '红绳操', '毛巾操', '走', '跌倒', '未定义行为']
 
-    __QUEUE_GET_TIMEOUT = 0.1
+    __QUEUE_GET_TIMEOUT = 0.01
     __RECOGNIZE_PER_FRAME = 5
-    __WAITING_QUEUE_MAXSIZE = 100
+    __WAITING_QUEUE_MAXSIZE = 50
 
     def __init__(self):
         self.waitingQueueDict = dict()
@@ -43,11 +45,21 @@ class Controller:
         self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
         self.sources = [
-            '/Users/benull/Downloads/action_video/0.MOV',
-            # 'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
-            # 'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
-            # 'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
+            # f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(4)]
+            # # 'rtsp://admin:1234abcd@10.177.60.243/h264/ch1/main/av_stream',
+
+            'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
+            'rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101',
+            'rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101',
+            'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
+            'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
+            'rtsp://admin:BDKJTB@192.168.10.242/Streaming/Channels/101',
+            'rtsp://admin:BKJFKN@192.168.10.198/Streaming/Channels/101',
+            'rtsp://admin:TYVSZA@192.168.10.201/Streaming/Channels/101',
+            'rtsp://admin:EUXWYZ@192.168.10.202/Streaming/Channels/101',
+            'rtsp://admin:AKNUVS@192.168.10.203/Streaming/Channels/101',
         ]
+
 
     def start(self):
         for source in self.sources:
@@ -66,6 +78,7 @@ class Controller:
             if not imagesData:
                 continue
             if needRecognize:
+                # pass
                 responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
                 responseQueue.put(list(map(self.__procResponseData, filter(None, imagesData))))
@@ -78,6 +91,7 @@ class Controller:
             responseData = self.recognizeAction(params)
             return list(map(self.__procResponseData, itertools.chain.from_iterable(imageListPerCamera), responseData))
         except Exception as e:
+            # traceback.print_exc()
             return []
 
     def __buildImageListPerCamera(self, imagesData):
@@ -108,8 +122,7 @@ class Controller:
         camera, frameNum, image = origin
         image = self.__showPoseAndBox(image, response)
         label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
-        return dict(camera=str(self.__cameras.index(camera)), frameNum=frameNum, image=image, label=label)
-
+        return dict(camera=str(camera), frameNum=frameNum, image=image, label=label)
 
     # fix inconsistencies in pose refresh
     # def __showPoseAndBox(self, camera, image, response):
@@ -144,31 +157,35 @@ class Controller:
     def __buildRecognizeParam(self, images, pose: bool = False, box: bool = False):
         if not images: return None
         images = list(map(
-            lambda image: {'camera': image[0], 'image': base64.b64encode(cv2.imencode('.jpg', image[2])[1]).decode()},
+            lambda image: {'camera': str(image[0]), 'image': base64.b64encode(cv2.imencode('.jpg', image[2])[1]).decode()},
             images))
         option = dict(pose=pose, box=box)
         return dict(images=images, option=option)
 
     def procVideo(self, camera):
-        videoCapture = VideoCapture(camera)
         self.__cameras.append(camera)
+        videoCapture = VideoCapture(camera, self.__cameras.index(camera))
+
         self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
-        p = multiprocessing.Process(target=videoCapture.captureFrame, args=(self.waitingQueueDict[camera],))
+        p = multiprocessing.Process(target=videoCapture.captureFrameByFfmpeg, args=(self.waitingQueueDict[camera],))
         self.__processes.append(p)
         p.start()
 
     def recognizeAction(self, params):
         requestList = self.__buildRequestList(params)
         responseList = grequests.map(requestList)
-        return self.__processMultiResponse(responseList)
+        return self.__processMultiResponse(requestList, responseList)
 
-    def __processMultiResponse(self, responseList):
+    def __processMultiResponse(self, requestList, responseList):
         mergedData = []
-
-        for response in filter(None, responseList):
+        for request, response in zip(requestList, responseList):
+            if response is None:
+                imagesNum = len(json.loads(request.kwargs['data'])['images'])
+                mergedData.extend([dict() for _ in range(imagesNum)])
+                continue
             if response.status_code == 200:
                 res = response.json()
-                if res.get('status') == 0:
+                if res.get('status') == 0 or res.get('status') == 3:
                     mergedData.extend(res.get('data'))
                 else:
                     raise Exception('Recognize Error: ' + res.get('message'))

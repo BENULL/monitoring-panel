@@ -20,8 +20,8 @@ class Controller:
     __RECOGNIZE_ACTION_URLS = [
                                # 'http://10.176.54.24:55000/recognizeAction',
                                'http://192.168.10.148:55000/recognizeAction',
-                               # 'http://192.168.10.88:55000/recognizeAction',
-                               # 'http://192.168.10.223:55000/recognizeAction',
+                               'http://192.168.10.88:55000/recognizeAction',
+                               'http://192.168.10.223:55000/recognizeAction',
                                ]
 
     __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未定义行为']
@@ -30,7 +30,7 @@ class Controller:
 
     # __ACTION_LABEL = ['吃', '玩手机', '坐', '睡觉', '站', '红绳操', '毛巾操', '走', '跌倒', '未定义行为']
 
-    __QUEUE_GET_TIMEOUT = 0.1
+    __QUEUE_GET_TIMEOUT = 0.01
     __RECOGNIZE_PER_FRAME = 5
     __WAITING_QUEUE_MAXSIZE = 50
 
@@ -48,13 +48,13 @@ class Controller:
             # f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(4)]
             # # 'rtsp://admin:1234abcd@10.177.60.243/h264/ch1/main/av_stream',
 
-            # 'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
-            # 'rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101',
-            # 'rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101',
-            # 'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
-            # 'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
-            # 'rtsp://admin:BDKJTB@192.168.10.242/Streaming/Channels/101',
-            # 'rtsp://admin:BKJFKN@192.168.10.198/Streaming/Channels/101',
+            'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
+            'rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101',
+            'rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101',
+            'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
+            'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
+            'rtsp://admin:BDKJTB@192.168.10.242/Streaming/Channels/101',
+            'rtsp://admin:BKJFKN@192.168.10.198/Streaming/Channels/101',
             'rtsp://admin:TYVSZA@192.168.10.201/Streaming/Channels/101',
             'rtsp://admin:EUXWYZ@192.168.10.202/Streaming/Channels/101',
             'rtsp://admin:AKNUVS@192.168.10.203/Streaming/Channels/101',
@@ -78,8 +78,8 @@ class Controller:
             if not imagesData:
                 continue
             if needRecognize:
-                pass
-                # responseQueue.put(self.__requestRecognizeAction(imagesData))
+                # pass
+                responseQueue.put(self.__requestRecognizeAction(imagesData))
             else:
                 responseQueue.put(list(map(self.__procResponseData, filter(None, imagesData))))
 
@@ -167,7 +167,7 @@ class Controller:
         videoCapture = VideoCapture(camera, self.__cameras.index(camera))
 
         self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
-        p = multiprocessing.Process(target=videoCapture.captureFrame, args=(self.waitingQueueDict[camera],))
+        p = multiprocessing.Process(target=videoCapture.captureFrameByFfmpeg, args=(self.waitingQueueDict[camera],))
         self.__processes.append(p)
         p.start()
 

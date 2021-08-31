@@ -36,23 +36,32 @@ class VideoCapture:
         queue.put('DONE')
         print(f'{self.camera} end')
 
+    def capture(self, input):
+        out = (
+            ffmpeg
+                .input(self.camera, rtsp_transport='tcp')
+                .filter('scale', self.scaled_width, self.scaled_height)
+                .output('pipe:', format='rawvideo', pix_fmt='rgb24', loglevel="quiet", )
+                .run_async(pipe_stdout=True)
+        )
+        return out
+
     def captureFrameByFfmpeg(self, queue):
         print(f'{self.camera} begin by ffmpeg')
         # probe = ffmpeg.probe(self.camera)
         # video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
         # self.width = int(video_stream['width'])
         # self.height = int(video_stream['height'])
-        out = (
-            ffmpeg
-                .input(self.camera, rtsp_transport='tcp')
-                .filter('scale', self.scaled_width, self.scaled_height)
-                .output('pipe:', format='rawvideo', pix_fmt='rgb24', loglevel="quiet",)
-                .run_async(pipe_stdout=True)
-        )
+        out = self.capture(self.camera)
         retry = 0
         byte_len = self.scaled_height * self.scaled_width * 3
         in_bytes = out.stdout.read(byte_len)
-        while in_bytes or retry <= 1000:
+        while True:
+            # in_bytes or retry <= 10:
+            if retry > 100:
+                print(f'{self.camera} reconnect by ffmpeg')
+                out = self.capture(self.camera)
+                in_bytes = out.stdout.read(byte_len)
             if not in_bytes:
                 retry += 1
                 in_bytes = out.stdout.read(byte_len)
@@ -62,6 +71,7 @@ class VideoCapture:
             queue.put((self.channel, self.frameNum, frame))
             self.frameNum += 1
             in_bytes = out.stdout.read(byte_len)
+
         queue.put('DONE')
         print(f'{self.camera} end')
 

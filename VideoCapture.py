@@ -13,8 +13,7 @@ class VideoCapture:
         self.camera = camera
         self.channel = channel
         self.frameNum = 1
-        self.scaled_width = 480
-        self.scaled_height = 360
+        self.scaled_width, self.scaled_height = 432, 267
 
     def captureFrame(self, queue: Queue):
         print(f'{self.camera} begin')
@@ -53,7 +52,7 @@ class VideoCapture:
         retry = 0
         byte_len = self.scaled_height * self.scaled_width * 3
         in_bytes = out.stdout.read(byte_len)
-        while in_bytes or retry <= 10:
+        while in_bytes or retry <= 1000:
             if not in_bytes:
                 retry += 1
                 in_bytes = out.stdout.read(byte_len)
@@ -69,7 +68,7 @@ class VideoCapture:
 if __name__ == '__main__':
 
     # cap = cv2.VideoCapture("rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101")
-    cap = cv2.VideoCapture(f'/Users/benull/Downloads/action_video/0.MOV')
+    cap = cv2.VideoCapture('rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101')
     ret, frame = cap.read()
     while ret:
         ret, frame = cap.read()

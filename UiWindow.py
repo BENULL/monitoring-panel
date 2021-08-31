@@ -30,11 +30,11 @@ class MyWidget(QWidget):
         self.actionLabel.resize(200, 80)
 
         self.imageLabel = QLabel(self)
-        # self.setMaximumSize(480, 360)
-        self.setMinimumSize(475, 268)
-
+        # self.imageLabel.setMaximumSize(475, 267)
+        self.imageLabel.setMinimumSize(475, 267)
+        # self.imageLabel.setMaximumSize(475, 267)
+        # self.imageLabel.setScaledContents(True)
         self.actionLabel.raise_()
-
         self.lastLabel = '未接收到动作'
 
     def imageStyleSheet(self, style):
@@ -49,7 +49,7 @@ class MyWidget(QWidget):
 
     def setImage(self, image: QPixmap):
         self.imageLabel.setPixmap(image)
-        self.imageLabel.setScaledContents(True)
+        self.imageLabel.repaint()
 
     def paintEvent(self, event: QtGui.QPaintEvent) -> None:
         self.imageLabel.resize(self.size())

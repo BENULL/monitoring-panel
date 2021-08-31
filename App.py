@@ -40,7 +40,7 @@ class App(MyMainWindow):
         screen = self.myWindow.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])
-        screen.repaint()
+        # screen.repaint()
 
     def __startRefresh(self):
         self.refreshTimer = QTimer()
@@ -85,7 +85,7 @@ class App(MyMainWindow):
         data = self.receiveData()
         if data:
             self.cacheQueue.put(data)
-            print('队列长度：', self.cacheQueue.qsize())
+            print('queue size ', self.cacheQueue.qsize())
 
     def ndarrayToQPixmap(self, image):
         return Image.fromarray(image).toqpixmap()

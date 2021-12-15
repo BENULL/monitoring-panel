@@ -36,7 +36,7 @@ class VideoCapture:
         queue.put('DONE')
         print(f'{self.camera} end')
 
-    def capture(self, input):
+    def capture(self):
         out = (
             ffmpeg
                 .input(self.camera, rtsp_transport='tcp')
@@ -52,7 +52,7 @@ class VideoCapture:
         # video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
         # self.width = int(video_stream['width'])
         # self.height = int(video_stream['height'])
-        out = self.capture(self.camera)
+        out = self.capture()
         retry = 0
         byte_len = self.scaled_height * self.scaled_width * 3
         in_bytes = out.stdout.read(byte_len)
@@ -60,7 +60,7 @@ class VideoCapture:
             # in_bytes or retry <= 10:
             if retry > 100:
                 print(f'{self.camera} reconnect by ffmpeg')
-                out = self.capture(self.camera)
+                out = self.capture()
                 in_bytes = out.stdout.read(byte_len)
             if not in_bytes:
                 retry += 1
@@ -75,9 +75,8 @@ class VideoCapture:
         queue.put('DONE')
         print(f'{self.camera} end')
 
-if __name__ == '__main__':
 
-    # cap = cv2.VideoCapture("rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101")
+if __name__ == '__main__':
     cap = cv2.VideoCapture('rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101')
     ret, frame = cap.read()
     while ret:

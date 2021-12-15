@@ -18,10 +18,10 @@ from Util import renderPose, renderBbox
 class Controller:
 
     __RECOGNIZE_ACTION_URLS = [
-                               # 'http://10.176.54.24:55000/recognizeAction',
-                               'http://192.168.10.148:55000/recognizeAction',
-                               'http://192.168.10.88:55000/recognizeAction',
-                               'http://192.168.10.223:55000/recognizeAction',
+                               'http://10.176.54.24:55000/recognizeAction',
+                               # 'http://192.168.10.148:55000/recognizeAction',
+                               # 'http://192.168.10.88:55000/recognizeAction',
+                               # 'http://192.168.10.223:55000/recognizeAction',
                                ]
 
     __ACTION_LABEL = ['站', '坐', '走', '吃饭', '红绳操', '毛巾操', '未定义行为']
@@ -45,20 +45,20 @@ class Controller:
         self.poseAndBoxByCamera = defaultdict(lambda: dict(pose=None, box=None, interval=0))
 
         self.sources = [
-            # f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(4)]
+            f'/Users/benull/Downloads/action_video/{i}.MOV' for i in range(4)]
             # # 'rtsp://admin:1234abcd@10.177.60.243/h264/ch1/main/av_stream',
 
-            'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
-            'rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101',
-            'rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101',
-            'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
-            'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
-            'rtsp://admin:BDKJTB@192.168.10.242/Streaming/Channels/101',
-            'rtsp://admin:BKJFKN@192.168.10.198/Streaming/Channels/101',
-            'rtsp://admin:TYVSZA@192.168.10.201/Streaming/Channels/101',
-            'rtsp://admin:EUXWYZ@192.168.10.202/Streaming/Channels/101',
-            'rtsp://admin:AKNUVS@192.168.10.203/Streaming/Channels/101',
-        ]
+            # 'rtsp://admin:izhaohu666@192.168.10.253/h264/ch1/main/av_stream',
+            # 'rtsp://admin:HGLBND@192.168.10.199/Streaming/Channels/101',
+            # 'rtsp://admin:SMWILY@192.168.10.174/Streaming/Channels/101',
+            # 'rtsp://admin:izhaohu666@192.168.10.254/h264/ch1/main/av_stream',
+            # 'rtsp://admin:UPXEBY@192.168.10.95/Streaming/Channels/101',
+            # 'rtsp://admin:BDKJTB@192.168.10.242/Streaming/Channels/101',
+            # 'rtsp://admin:BKJFKN@192.168.10.198/Streaming/Channels/101',
+            # 'rtsp://admin:TYVSZA@192.168.10.201/Streaming/Channels/101',
+            # 'rtsp://admin:EUXWYZ@192.168.10.202/Streaming/Channels/101',
+            # 'rtsp://admin:AKNUVS@192.168.10.203/Streaming/Channels/101',
+        # ]
 
 
     def start(self):
@@ -71,8 +71,16 @@ class Controller:
         t = threading.Thread(target=self.procRecognizeQueue, args=(self.waitingQueueDict, self.responseQueue,))
         t.start()
 
-    def procRecognizeQueue(self, waitingQueueDict, responseQueue):
+    def procVideo(self, camera):
+        self.__cameras.append(camera)
+        videoCapture = VideoCapture(camera, self.__cameras.index(camera))
+        self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
+        p = multiprocessing.Process(target=videoCapture.captureFrameByFfmpeg, args=(self.waitingQueueDict[camera],))
+        self.__processes.append(p)
+        p.start()
 
+
+    def procRecognizeQueue(self, waitingQueueDict, responseQueue):
         while True:
             imagesData, needRecognize = self.__gainFramePerVideo(waitingQueueDict)
             if not imagesData:
@@ -120,28 +128,28 @@ class Controller:
 
     def __procResponseData(self, origin, response=dict()):
         camera, frameNum, image = origin
-        image = self.__showPoseAndBox(image, response)
+        image = self.__showPoseAndBox(camera, image, response)
         label = Controller.__ACTION_LABEL[response['personInfo'][0]['action']] if response.get('personInfo') else None
         return dict(camera=str(camera), frameNum=frameNum, image=image, label=label)
 
     # fix inconsistencies in pose refresh
-    # def __showPoseAndBox(self, camera, image, response):
-    #     if response.get('personInfo'):
-    #         self.poseAndBoxByCamera[camera]['pose'] = response['personInfo'][0]['pose']
-    #         self.poseAndBoxByCamera[camera]['box'] = response['personInfo'][0]['box']
-    #         self.poseAndBoxByCamera[camera]['interval'] = 0
-    #     else:
-    #         self.poseAndBoxByCamera[camera]['interval'] += 1
-    #
-    #     if self.poseAndBoxByCamera[camera]['interval'] > Controller.__RECOGNIZE_PER_FRAME:
-    #         self.poseAndBoxByCamera[camera]['pose'] = None
-    #         self.poseAndBoxByCamera[camera]['box'] = None
-    #
-    #     if self.showPose and self.poseAndBoxByCamera[camera]['pose']:
-    #         image = renderPose(image, self.poseAndBoxByCamera[camera]['pose'])
-    #     if self.showBox and self.poseAndBoxByCamera[camera]['box']:
-    #         image = renderBbox(image, self.poseAndBoxByCamera[camera]['box'])
-    #     return image
+    def __showPoseAndBox(self, camera, image, response):
+        if response.get('personInfo'):
+            self.poseAndBoxByCamera[camera]['pose'] = response['personInfo'][0]['pose']
+            self.poseAndBoxByCamera[camera]['box'] = response['personInfo'][0]['box']
+            self.poseAndBoxByCamera[camera]['interval'] = 0
+        else:
+            self.poseAndBoxByCamera[camera]['interval'] += 1
+
+        if self.poseAndBoxByCamera[camera]['interval'] > Controller.__RECOGNIZE_PER_FRAME:
+            self.poseAndBoxByCamera[camera]['pose'] = None
+            self.poseAndBoxByCamera[camera]['box'] = None
+
+        if self.showPose and self.poseAndBoxByCamera[camera]['pose']:
+            image = renderPose(image, self.poseAndBoxByCamera[camera]['pose'])
+        if self.showBox and self.poseAndBoxByCamera[camera]['box']:
+            image = renderBbox(image, self.poseAndBoxByCamera[camera]['box'])
+        return image
 
     def __showPoseAndBox(self, image, response):
         if not response.get('personInfo'):
@@ -154,6 +162,11 @@ class Controller:
             image = renderBbox(image, box)
         return image
 
+    def recognizeAction(self, params):
+        requestList = self.__buildRequestList(params)
+        responseList = grequests.map(requestList)
+        return self.__processMultiResponse(requestList, responseList)
+
     def __buildRecognizeParam(self, images, pose: bool = False, box: bool = False):
         if not images: return None
         images = list(map(
@@ -161,20 +174,6 @@ class Controller:
             images))
         option = dict(pose=pose, box=box)
         return dict(images=images, option=option)
-
-    def procVideo(self, camera):
-        self.__cameras.append(camera)
-        videoCapture = VideoCapture(camera, self.__cameras.index(camera))
-
-        self.waitingQueueDict[camera] = Queue(maxsize=Controller.__WAITING_QUEUE_MAXSIZE)
-        p = multiprocessing.Process(target=videoCapture.captureFrameByFfmpeg, args=(self.waitingQueueDict[camera],))
-        self.__processes.append(p)
-        p.start()
-
-    def recognizeAction(self, params):
-        requestList = self.__buildRequestList(params)
-        responseList = grequests.map(requestList)
-        return self.__processMultiResponse(requestList, responseList)
 
     def __processMultiResponse(self, requestList, responseList):
         mergedData = []

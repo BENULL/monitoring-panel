@@ -40,7 +40,6 @@ class App(MyMainWindow):
         screen = self.myWindow.screenByCamera[info["camera"]]
         screen.setActionLabel(info.get('label'))
         screen.setImage(info['image'])
-        # screen.repaint()
 
     def __startRefresh(self):
         self.refreshTimer = QTimer()
